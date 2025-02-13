@@ -94,8 +94,10 @@ def load_semantic_scene_graphs(json_relationships, json_objects):
                 print("WARNING: no objects for this scene")
             scene_graphs[scan + "_" + split]['relationships'] = []
             for k in s["objects"].keys():
-                ob = s['objects'][k]
+                # s["objects"].keys()   dict_keys(['1', '2', '3', '4', '5'])
+                ob = s['objects'][k]   # floor cabinet basket ... 
                 for i,o in enumerate(scene_graphs_obj[scan]['objects']):
+                    # o: obj (floor, wall ...)  with all info (color, affordance, id, label)
                     if o['id'] == k:
                         inst = i
                         break

@@ -12,6 +12,30 @@ from helpers.psutil import FreeMemLinux
 from helpers.util import normalize_box_params, denormalize_box_params, get_rotation
 import random
 import pickle
+import pdb
+
+
+# word diversity
+support_express = ['support']
+opp_support_express = ['supported by', 'resting on', 'placed on', 'on', 'on the top of']
+
+embed_express = ['']
+opp_embed_express = ['build in', 'embedded into', 'placed within the area of']
+
+inside_express = ['']
+opp_inside_express = ['inside', 'placed within the area of']
+
+hanging_express = ['hanging on', 'hung on']
+
+close_express = ['close by', 'close to', 'adjacent to', 'beside', 'next to']
+
+under_express = ['above']
+
+above_express = ['higher than', 'above']
+below_express = ['lower than', 'below']
+
+left_express = ['to the left of', 'left']
+right_express = ['to the right of', 'right']
 
 
 class RIODatasetSceneGraph(data.Dataset):
@@ -40,6 +64,11 @@ class RIODatasetSceneGraph(data.Dataset):
         self.recompute_feats = recompute_feats
 
         self.use_canonical = use_canonical
+
+        # Haoliang
+        self.use_txt_scene_graph = False
+        self.scene_graph_path = os.path.join(root, 'triplets.txt')
+        self.split = split
 
         if eval and seed:
             np.random.seed(47)
@@ -83,14 +112,22 @@ class RIODatasetSceneGraph(data.Dataset):
             self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_train.json')
         else: # validation set
             splits_fname = 'relationships_validation_clean' if self.use_splits else 'relationships_merged_validation_clean'
-            self.rel_json_file = os.path.join(self.root, '{}.json'.format(splits_fname))
-            self.box_json_file = os.path.join(self.root, 'obj_boxes_val_refined.json')
-            self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_val.json')
+            # self.rel_json_file = os.path.join(self.root, '{}.json'.format(splits_fname))
+            # self.box_json_file = os.path.join(self.root, 'obj_boxes_val_refined.json')
+            # self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_val.json')
+            self.rel_json_file = os.path.join(self.root, 'relationships_validation_one.json')
+            self.box_json_file = os.path.join(self.root, 'obj_boxes_val_one.json')
+            self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_val_one.json')
+            # self.rel_json_file = os.path.join(self.root, 'relationships_train_clean.json')
+            # self.box_json_file = os.path.join(self.root, 'obj_boxes_train_refined.json')
+            # self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_train.json')
 
         if self.crop_floor:
             with open(self.floor_json_file, "r") as read_file:
                 self.floor_data = json.load(read_file)
-
+        print("#################")
+        print(self.rel_json_file)
+        print(self.box_json_file)
         self.relationship_json, self.objs_json, self.tight_boxes_json = \
                 self.read_relationship_json(self.rel_json_file, self.box_json_file)
 
@@ -123,7 +160,8 @@ class RIODatasetSceneGraph(data.Dataset):
         if not class_choice is None:
             self.cat = {k: v for k, v in self.cat.items() if k in class_choice}
 
-        self.classes = dict(zip(sorted(self.cat), range(len(self.cat))))
+        self.classes = dict(zip(sorted(self.cat), range(len(self.cat))))  # 160 classes in classes.txt ['armchair':1, 'backpack':2 ...]
+        breakpoint()
 
         # we had to discard some underrepresented classes for the shape generation
         # either not part of shapenet, or limited and low quality samples in 3rscan
@@ -165,6 +203,127 @@ class RIODatasetSceneGraph(data.Dataset):
                 self.__getitem__(index)
             self.recompute_feats = False
 
+    def _convert_SceneVerse_pred_to_3dssg_pred_idx(self, pred):
+        """ Convert SceneVerse predicates to 3DSSG predicates
+        :param pred: predicate in SceneVerse format
+        :return: predicate in 3DSSG format
+        """
+        if pred in support_express:
+            return 1
+        elif pred in opp_embed_express:
+            return 16
+        elif pred in inside_express:
+            return 8
+        elif pred in hanging_express:
+            return 19
+        elif pred in close_express:
+            return 7
+        elif pred in above_express:
+            return 11
+        elif pred in below_express:
+            return 12
+        elif pred in left_express:
+            return 3
+        elif pred in right_express:
+            return 4
+        elif pred == 'attached to':
+            return 15
+        else:
+            return 0
+        
+    def load_triplets_from_file(self, instance2mask, obj_dict, path):
+        """
+        Loads scene graph triplets from a text file.
+
+        Each line in the file should be formatted as:
+        subject predicate object
+        where:
+        - subject and object are instance strings (e.g., "bed_1")
+        - predicate is a textual relationship (e.g., "adjacent_to")
+        
+        The function maps these instance strings to their corresponding instance IDs,
+        then looks up local indices using instance2mask, and finally converts the predicate
+        text into an index using _convert_SceneVerse_pred_to_3dssg_pred_idx.
+
+        Parameters:
+        instance2mask (dict): Maps instance IDs to local indices.
+        obj_dict (dict): Maps instance IDs (usually integers) to category names.
+        path (str): File path for the triplets text file.
+
+        Returns:
+        list: A list of triplets in the format [subject_idx, predicate_idx, object_idx].
+        """
+
+        def map_strings_to_instance_ids(instance_strings, obj_dict):
+            """
+            Map each instance string (e.g., "bed_1") to an instance ID using obj_dict.
+            It groups the instance IDs by category (from obj_dict values), sorts each group,
+            and then assigns instance IDs to the instance strings sorted by their numeric suffix.
+            """
+            # Group available instance IDs by category.
+            category_to_ids = {}
+            for inst_id, category in obj_dict.items():
+                category_to_ids.setdefault(category, []).append(inst_id)
+            # Sort the instance IDs for each category.
+            for cat in category_to_ids:
+                category_to_ids[cat].sort()
+
+            # Sort the instance strings based on their numeric suffix.
+            sorted_strings = sorted(instance_strings, key=lambda s: int(s.split("_")[-1]))
+            mapping = {}
+            for s in sorted_strings:
+                # The category is assumed to be the part before the last underscore.
+                category = s.rsplit("_", 1)[0].replace('_', ' ')
+                if category in category_to_ids and category_to_ids[category]:
+                    mapping[s] = category_to_ids[category].pop(0)
+                else:
+                    mapping[s] = None  # No valid instance ID found.
+            return mapping
+
+        # Read the file and extract triplets.
+        triplet_entries = []  # will hold tuples: (subject, predicate, object)
+        instance_strings = set()  # unique instance strings for subjects and objects
+
+        with open(path, 'r') as f:
+            for line in f:
+                tokens = line.strip().split()
+                if len(tokens) != 3:
+                    continue  # Skip ill-formatted lines.
+                subj_str, obj_str, pred_str = tokens
+                triplet_entries.append((subj_str, pred_str, obj_str))
+                instance_strings.update([subj_str, obj_str])
+
+            print(f"triplet_entries length {len(triplet_entries)}")
+        # Map instance strings to instance IDs using the provided object dictionary.
+        string_to_instance_id = map_strings_to_instance_ids(instance_strings, obj_dict)
+
+        # Build the final list of triplets.
+        triplets = []
+        for subj_str, pred_str, obj_str in triplet_entries:
+            subj_inst_id = string_to_instance_id.get(subj_str)
+            obj_inst_id = string_to_instance_id.get(obj_str)
+            if subj_inst_id is None or obj_inst_id is None:
+                print("Skip if mapping is missing.")
+                continue  # Skip if mapping is missing.
+
+            try:
+                # Use dictionary indexing (not function calls) to get local indices.
+                subject_idx = instance2mask[subj_inst_id] - 1
+                object_idx = instance2mask[obj_inst_id] - 1
+            except KeyError:
+                print("skipping triplets")
+                # Skip this triplet if either instance is not found in instance2mask.
+                continue
+
+            # Clean the predicate (replace underscores with spaces) and convert to index.
+            pred_clean = pred_str.replace('_', ' ')
+            predicate_idx = self._convert_SceneVerse_pred_to_3dssg_pred_idx(pred_clean)
+
+            triplets.append([subject_idx, predicate_idx, object_idx])
+        print(f"triplet length before return {len(triplets)}")
+
+        return triplets
+
     def read_relationship_json(self, json_file, box_json_file):
         """ Reads from json files the relationship labels, objects and bounding boxes
 
@@ -178,7 +337,9 @@ class RIODatasetSceneGraph(data.Dataset):
 
         with open(box_json_file, "r") as read_file:
             box_data = json.load(read_file)
-
+        print("##########")
+        print(f"box json file: {box_json_file}")
+        print(f"json file: {json_file}")
         with open(json_file, "r") as read_file:
             data = json.load(read_file)
             for scan in data['scans']:
@@ -314,6 +475,11 @@ class RIODatasetSceneGraph(data.Dataset):
             max_box = np.asarray(scene_floor[floor_idx]['max_box']) - scene_center
 
         file = os.path.join(self.root_3rscan, scan_id_no_split, self.label_file)
+        # print("#############")
+        # print(os.path.join(self.root_3rscan, scan_id_no_split,"semseg.v2.json"))
+
+        # if self.generate_custom_scene:
+
         if os.path.exists(os.path.join(self.root_3rscan, scan_id_no_split, "semseg.v2.json")):
             semseg_file = os.path.join(self.root_3rscan, scan_id_no_split, "semseg.v2.json")
         elif os.path.exists(os.path.join(self.root_3rscan, scan_id_no_split, "semseg.json")):
@@ -323,8 +489,9 @@ class RIODatasetSceneGraph(data.Dataset):
 
         # instance2label, e.g. {1: 'floor', 2: 'wall', 3: 'picture', 4: 'picture'}
         instance2label = self.load_semseg(semseg_file)
-        selected_instances = list(self.objs_json[scan_id].keys())
-        keys = list(instance2label.keys())
+        selected_instances = list(self.objs_json[scan_id].keys()) # [1 2 3 4 6]
+        keys = list(instance2label.keys()) # [1 12 17 28 ...]
+        # breakpoint()
 
         if self.shuffle_objs:
             random.shuffle(keys)
@@ -382,7 +549,8 @@ class RIODatasetSceneGraph(data.Dataset):
         for key in keys:
             # get objects from the selected list of classes of 3dssg
             scene_instance_id = key
-            scene_instance_class = instance2label[key]
+            scene_instance_class = instance2label[key]   # 'floor' / 'wall' ... 
+            # breakpoint()
             scene_class_id = -1
             if scene_instance_class in self.classes and \
                     (not self.use_rio27 or self.mapping_full2rio27[scene_instance_class] != '-'):
@@ -390,7 +558,7 @@ class RIODatasetSceneGraph(data.Dataset):
                     scene_instance_class = self.mapping_full2rio27[scene_instance_class]
                     scene_class_id = int(self.vocab_rio27['rio27_name_to_idx'][scene_instance_class])
                 else:
-                    scene_class_id = self.classes[scene_instance_class]
+                    scene_class_id = self.classes[scene_instance_class]  # int in [1, 160]
             if scene_class_id != -1 and key in selected_instances:
                 instance2mask[scene_instance_id] = counter + 1
                 counter += 1
@@ -434,6 +602,8 @@ class RIODatasetSceneGraph(data.Dataset):
         if self.with_feats:
             # If precomputed features exist, we simply load them
             if os.path.exists(feats_path):
+                # print("##########")
+                # print(f"feats path: {feats_path}")
                 feats_dic = pickle.load(open(feats_path, 'rb'))
 
                 feats_in = feats_dic['feats']
@@ -444,6 +614,7 @@ class RIODatasetSceneGraph(data.Dataset):
                     ordered_feats.append(feats_in[:-1][feats_in_instance])
                 ordered_feats.append(np.zeros([1, feats_in.shape[1]]))
                 feats_in = list(np.concatenate(ordered_feats, axis=0))
+        # breakpoint()
 
         # Sampling of points from object if they are loaded
         if (self.with_feats and (not os.path.exists(feats_path) or feats_in is None)) or self.use_points:
@@ -453,6 +624,7 @@ class RIODatasetSceneGraph(data.Dataset):
             obj_points = torch.zeros([num_pointsets, self.npoints, 3])
 
             for i in range(len(cat)):
+                # breakpoint()
                 obj_pointset = points[np.where(masks == i + 1)[0], :]
 
                 if self.crop_floor and self.vocab['object_idx_to_name'][cat[i]].split('\n')[0] == 'floor':
@@ -467,6 +639,8 @@ class RIODatasetSceneGraph(data.Dataset):
                 else:
                     choice = np.arange(len(obj_pointset))
                     # use repetitions to fill some more points
+                    # print("##########")
+                    # print(f"obj_pointset: {obj_pointset}")
                     choice2 = np.random.choice(len(obj_pointset), self.npoints - choice.shape[0], replace=True)
                     choice = np.concatenate([choice, choice2], 0)
                     random.shuffle(choice)
@@ -484,18 +658,36 @@ class RIODatasetSceneGraph(data.Dataset):
         else:
             obj_points = None
 
-        triples = []
-        rel_json = self.relationship_json[scan_id]
+        if self.use_txt_scene_graph and self.split is not "train_scans":
+            # Assuming self.scene_graph_path is set for each scan_id if needed.
+            # If one file contains the scene graph for all sample, adjust accordingly.
+            triples = self.load_triplets_from_file(instance2mask, self.objs_json[scan_id], self.scene_graph_path)
+            print(len(triples))
+        else:
+            triples = []
+            rel_json = self.relationship_json[scan_id]
 
-        for r in rel_json: # create relationship triplets from data
-            if r[0] in instance2mask.keys() and r[1] in instance2mask.keys():
-                subject = instance2mask[r[0]] - 1
-                object = instance2mask[r[1]] - 1
-                predicate = r[2] + 1
-                if subject >= 0 and object >= 0:
-                    triples.append([subject, predicate, object])
-            else:
-                continue
+            for r in rel_json: # create relationship triplets from data
+                if r[0] in instance2mask.keys() and r[1] in instance2mask.keys(): # key is local instance id 
+                    subject = instance2mask[r[0]] - 1
+                    object = instance2mask[r[1]] - 1
+                    predicate = r[2] + 1
+                    if subject >= 0 and object >= 0:
+                        triples.append([subject, predicate, object])
+                else:
+                    continue
+        # triples = []
+        # rel_json = self.relationship_json[scan_id]
+
+        # for r in rel_json: # create relationship triplets from data
+        #     if r[0] in instance2mask.keys() and r[1] in instance2mask.keys():
+        #         subject = instance2mask[r[0]] - 1
+        #         object = instance2mask[r[1]] - 1
+        #         predicate = r[2] + 1
+        #         if subject >= 0 and object >= 0:
+        #             triples.append([subject, predicate, object])
+        #     else:
+        #         continue
 
         if self.use_scene_rels:
             # add _scene_ object and _in_scene_ connections
@@ -543,6 +735,9 @@ class RIODatasetSceneGraph(data.Dataset):
         output['encoder'] = {}
         output['encoder']['objs'] = cat
         output['encoder']['triples'] = triples
+
+        # if self.split is not "train_scans":
+        #     print(f"triple {triples}")
         output['encoder']['boxes'] = tight_boxes
         if self.use_points:
             output['encoder']['points'] = list(obj_points.numpy())

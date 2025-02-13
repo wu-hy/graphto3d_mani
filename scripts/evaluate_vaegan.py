@@ -17,8 +17,8 @@ from helpers.visualize_scene import render
 import helpers.retrieval as retrieval
 from model.atlasnet import AE_AtlasNet
 
-import extension.dist_chamfer as ext
-chamfer = ext.chamferDist()
+# import extension.dist_chamfer as ext
+# chamfer = ext.chamferDist()
 import json
 
 parser = argparse.ArgumentParser()

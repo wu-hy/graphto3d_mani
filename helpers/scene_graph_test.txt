@@ -1,0 +1,14 @@
+shower_curtain_1 wall hanging_on
+sink_1 wall hung_on
+curtain_1 wall hanging_on
+curtain_2 wall hanging_on
+washing_machine_1 wall hanging_on
+trash_bin_1 wall hanging_on
+toilet_1 wall hung_on
+rack_stand_1 wall hung_on
+water_heater_1 wall hung_on
+water_heater_1 washing_machine_1 2_o‘clock_direction_near
+washing_machine_1 water_heater_1 to_the_left_of
+soap_dispenser_1 wall supported_by
+shelf_1 wall placed_on
+shower_1 floor_1 on

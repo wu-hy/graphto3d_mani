@@ -47,8 +47,8 @@ def draw_edges(g, graph_relationships, relationships, rel_filter_in, rel_filter_
 		else:
 			g.edge(str(edge_obj_sub[0]), str(edge_obj_sub[1]), label=rels, color='grey')
 
-
-def run(use_sampled_graphs=True, scan_id="4d3d82b6-8cf4-2e04-830a-4303fa0e79c7", split=None, with_manipulation=False,
+#4d3d82b6-8cf4-2e04-830a-4303fa0e79c7
+def run(use_sampled_graphs=True, scan_id="6e67e550-1209-2cd0-8294-7cc2564cf82c", split="1", with_manipulation=False,
 				data_path='./GT', outfolder="./vis_graphs/", graphfile='graphs_layout.yml'):
 
 	if use_sampled_graphs:
@@ -58,8 +58,10 @@ def run(use_sampled_graphs=True, scan_id="4d3d82b6-8cf4-2e04-830a-4303fa0e79c7",
 		graph_yaml = os.path.join(data_path, graphfile)
 	else:
 		# use this option to read scene graphs from the dataset
-		relationships_json = os.path.join(data_path, 'relationships_validation_clean.json') #"relationships_train.json")
-		objects_json = os.path.join(data_path, "objects.json")
+		# relationships_json = os.path.join(data_path, 'relationships_validation_clean.json') #"relationships_train.json")
+		# objects_json = os.path.join(data_path, "objects.json")
+		relationships_json = os.path.join(data_path, 'relationships_validation_one.json')
+		objects_json = os.path.join(data_path, "objects_one.json")	
 
 	relationships = viz_util.read_relationships(os.path.join(data_path, "relationships.txt"))
 
@@ -91,3 +93,5 @@ def run(use_sampled_graphs=True, scan_id="4d3d82b6-8cf4-2e04-830a-4303fa0e79c7",
 	# return used colors so that they can be used for 3D model visualization
 	return dict(zip(idx, color))
 
+if __name__ == "__main__": 
+	run(use_sampled_graphs=False)
