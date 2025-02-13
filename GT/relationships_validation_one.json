@@ -1,0 +1,59 @@
+{
+    "scans": [
+        {
+            "scan": "ab835faa-54c6-29a1-9b55-1a5217fcba19",
+            "split": 1,
+            "objects": {
+                "1": "floor",
+                "2": "cabinet",
+                "3": "basket",
+                "4": "bathtub",
+                "6": "basket"
+            },
+            "relationships": [
+                [
+                    4,
+                    1,
+                    15,
+                    "standing on"
+                ],
+                [
+                    2,
+                    1,
+                    15,
+                    "standing on"
+                ],
+                [
+                    6,
+                    1,
+                    15,
+                    "standing on"
+                ],
+                [
+                    3,
+                    1,
+                    15,
+                    "standing on"
+                ],
+                [
+                    5,
+                    3,
+                    6,
+                    "close by"
+                ],
+                [
+                    4,
+                    2,
+                    2,
+                    "left"
+                ],
+                [
+                    2,
+                    4,
+                    3,
+                    "right"
+                ]
+            ]
+        }
+    ]
+}
