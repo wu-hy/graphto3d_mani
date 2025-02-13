@@ -8,7 +8,7 @@ import pickle
 
 
 def render(predBoxes, predAngles=None, classes=None, classed_idx=None, shapes_pred=None, render_type='points',
-           render_shapes=True, render_boxes=False, colors=None, output_path =None):
+           render_shapes=True, render_boxes=False, colors=None):
 
     if render_type not in ['meshes', 'points']:
         raise ValueError('Render type needs to be either set to meshes or points.')
@@ -17,21 +17,11 @@ def render(predBoxes, predAngles=None, classes=None, classed_idx=None, shapes_pr
         colors = np.asarray(json.load(open('graphs/color_palette.json', 'r'))['rgb']) / 255.
 
     vis = o3d.visualization.Visualizer()
-    vis.create_window(visible=False)
+    vis.create_window()
 
     ren_opt = vis.get_render_option()
     ren_opt.mesh_show_back_face = True
     ren_opt.line_width = 50.
-
-    # if hasattr(o3d.visualization, 'rendering') and hasattr(o3d.visualization.rendering, 'OffscreenRenderer'):
-    #     renderer = o3d.visualization.rendering.OffscreenRenderer(1024, 768)
-    #     renderer.scene.set_background([1, 1, 1, 1])  
-    # else:
-    #     vis = o3d.visualization.Visualizer()
-    #     vis.create_window()
-    #     ren_opt = vis.get_render_option()
-    #     ren_opt.mesh_show_back_face = True
-    #     ren_opt.line_width = 50.
 
     edges = [0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]
 
@@ -101,26 +91,8 @@ def render(predBoxes, predAngles=None, classes=None, classed_idx=None, shapes_pr
 
     vis.add_geometry(o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 2]))
     vis.poll_events()
-    # vis.run()
-    vis.update_renderer()
-    vis.capture_screen_image(output_path)
+    vis.run()
     vis.destroy_window()
-
-    # if hasattr(o3d.visualization, 'rendering'):
-    #     coordinate_frame = o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 2])
-    #     renderer.scene.add_geometry("coordinate_frame", coordinate_frame)
-    # else:
-    #     vis.add_geometry(o3d.geometry.TriangleMesh.create_coordinate_frame(size=0.6, origin=[0, 0, 2]))
-
-    # if output_path:
-    #     if hasattr(o3d.visualization, 'rendering'):
-    #         img = renderer.render_to_image()
-    #         o3d.io.write_image(output_path, img)
-    #     else:
-    #         vis.poll_events()
-    #         vis.run()
-    #         vis.capture_screen_image(output_path)
-    #         vis.destroy_window()
 
 
 if __name__ == "__main__":
