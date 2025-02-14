@@ -272,7 +272,7 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
                 pickle.dump(render_inputs, f)
                 print("render inputs saved!!!!")
             render(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
-                   shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True, output_path=args.exp + "/vis_scenes/")
+                   shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True)
 
         all_pred_boxes.append(boxes_pred_den.cpu().detach())
         if with_diversity:
