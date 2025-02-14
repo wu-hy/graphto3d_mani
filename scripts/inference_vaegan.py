@@ -176,7 +176,7 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
     for i, data in enumerate(testdataloader, 0):
         try:
             dec_objs, dec_triples = data['decoder']['objs'], data['decoder']['tripltes']
-            breakpoint()
+            # breakpoint()
             instances = data['instance_id'][0]
             scan = data['scan_id'][0]
             split = data['split_id'][0]
@@ -190,7 +190,7 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
 
         with torch.no_grad():
             boxes_pred, shapes_pred = model.sample_box_and_shape(point_classes_idx, point_ae, dec_objs, dec_triples, attributes=None)
-            breakpoint()
+            # breakpoint()
             # print(f"!!!!!pred box type{type(boxes_pred)}")
             # print(f"!!!!!pred box{boxes_pred}")
             if with_angles:

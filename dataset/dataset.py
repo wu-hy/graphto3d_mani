@@ -66,6 +66,7 @@ class RIODatasetSceneGraph(data.Dataset):
         self.use_canonical = use_canonical
 
         # Haoliang
+        self.gen_custom_scene = True
         self.use_txt_scene_graph = False
         self.scene_graph_path = os.path.join(root, 'triplets.txt')
         self.split = split
@@ -160,8 +161,9 @@ class RIODatasetSceneGraph(data.Dataset):
         if not class_choice is None:
             self.cat = {k: v for k, v in self.cat.items() if k in class_choice}
 
-        self.classes = dict(zip(sorted(self.cat), range(len(self.cat))))  # 160 classes in classes.txt ['armchair':1, 'backpack':2 ...]
-        breakpoint()
+        self.classes = dict(zip(sorted(self.cat), range(len(self.cat))))  
+        # 160 classes in classes.txt {'_scene_': 0, 'armchair': 1, 'backpack': 2,...,'windowsill': 160}
+        # breakpoint()
 
         # we had to discard some underrepresented classes for the shape generation
         # either not part of shapenet, or limited and low quality samples in 3rscan
@@ -488,9 +490,11 @@ class RIODatasetSceneGraph(data.Dataset):
             raise FileNotFoundError("Cannot find semseg.json file.")
 
         # instance2label, e.g. {1: 'floor', 2: 'wall', 3: 'picture', 4: 'picture'}
-        instance2label = self.load_semseg(semseg_file)
+        instance2label = self.load_semseg(semseg_file) # instances in semseg file {31: 'doorframe', 14: 'toilet', 9: 'wall'...
         selected_instances = list(self.objs_json[scan_id].keys()) # [1 2 3 4 6]
-        keys = list(instance2label.keys()) # [1 12 17 28 ...]
+        if self.gen_custom_scene and self.split is not "train_scans": 
+            instance2label = self.objs_json[scan_id]
+        keys = list(instance2label.keys()) # [31, 14, 9 ...]
         # breakpoint()
 
         if self.shuffle_objs:
@@ -546,7 +550,7 @@ class RIODatasetSceneGraph(data.Dataset):
         instances_order = []
         selected_shapes = []
 
-        for key in keys:
+        for key in keys:  # keys include all instances in semseg file
             # get objects from the selected list of classes of 3dssg
             scene_instance_id = key
             scene_instance_class = instance2label[key]   # 'floor' / 'wall' ... 
@@ -554,20 +558,23 @@ class RIODatasetSceneGraph(data.Dataset):
             scene_class_id = -1
             if scene_instance_class in self.classes and \
                     (not self.use_rio27 or self.mapping_full2rio27[scene_instance_class] != '-'):
+                # breakpoint()
                 if self.use_rio27:
                     scene_instance_class = self.mapping_full2rio27[scene_instance_class]
                     scene_class_id = int(self.vocab_rio27['rio27_name_to_idx'][scene_instance_class])
                 else:
-                    scene_class_id = self.classes[scene_instance_class]  # int in [1, 160]
+                    scene_class_id = self.classes[scene_instance_class]  # find class id (int in [1, 160])
             if scene_class_id != -1 and key in selected_instances:
                 instance2mask[scene_instance_id] = counter + 1
-                counter += 1
+                counter += 1 # count the num of selected_instances in semseg file 
+                # {0: 0, 31: 0, 14: 0, 9: 0, 15: 0, 16: 0, 5: 0, 17: 0, 3: 1, 19: 0, 20: 0, 7: 0, 2: 2, 6: 3 .......
             else:
                 instance2mask[scene_instance_id] = 0
 
             # mask to cat:
             if (scene_class_id >= 0) and (scene_instance_id > 0) and (key in selected_instances):
                 if self.use_canonical:
+                    # breakpoint()
                     direction = self.tight_boxes_json[scan_id][key]['direction']
                     if direction in [-1, 0, 6]:
                         # skip invalid point clouds with ambiguous direction annotation
@@ -598,6 +605,7 @@ class RIODatasetSceneGraph(data.Dataset):
                 if not self.vae_baseline:
                     bbox = normalize_box_params(bbox)
                 tight_boxes.append(bbox)
+        # breakpoint()
 
         if self.with_feats:
             # If precomputed features exist, we simply load them
