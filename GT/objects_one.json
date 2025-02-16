@@ -1,11 +1,11 @@
 {
     "scans": [
         {
-            "scan": "fake-scene",
+            "scan": "ab835faa-54c6-29a1-9b55-1a5217fcba19",
             "objects": [
                 {
                     "ply_color": "#567586",
-                    "label": "pillow",
+                    "label": "side table",
                     "id": "0",
                     "global_id": "11",
                     "affordances": [],
@@ -13,7 +13,7 @@
                 },
                 {
                     "ply_color": "#caf0fc",
-                    "label": "side table",
+                    "label": "floor",
                     "id": "1",
                     "global_id": "186",
                     "affordances": [],
@@ -21,7 +21,7 @@
                 },
                 {
                     "ply_color": "#8ee938",
-                    "label": "side table",
+                    "label": "pillow",
                     "id": "2",
                     "global_id": "92",
                     "affordances": [],
@@ -29,7 +29,7 @@
                 },
                 {
                     "ply_color": "#738b55",
-                    "label": "floor",
+                    "label": "side table",
                     "id": "3",
                     "global_id": "148",
                     "affordances": [],
@@ -45,7 +45,7 @@
                 },
                 {
                     "ply_color": "#98d1d3",
-                    "label": "commode",
+                    "label": "pillow",
                     "id": "5",
                     "global_id": "179",
                     "affordances": [],
@@ -53,7 +53,7 @@
                 },
                 {
                     "ply_color": "#d3bc9a",
-                    "label": "pillow",
+                    "label": "commode",
                     "id": "6",
                     "global_id": "74",
                     "affordances": [],

@@ -61,7 +61,7 @@ def run_inference():
     set_random_seed(48)
 
     # Haoliang: eval 1 scene before start
-    eval_one_scene("fake-scene", 1)
+    eval_one_scene()
 
     argsJson = os.path.join(args.exp, 'args.json')
     assert os.path.exists(argsJson), 'Could not find args.json for experiment {}'.format(args.exp)

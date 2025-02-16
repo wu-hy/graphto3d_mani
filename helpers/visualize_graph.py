@@ -2,7 +2,7 @@ from graphviz import Digraph
 import os
 from helpers import viz_util
 import json
-
+import random
 
 def visualize_scene_graph(graph, relationships, rel_filter_in = [], rel_filter_out = [], obj_ids = [], title ="", scan_id="",
 													outfolder="./vis_graphs/"):
@@ -47,9 +47,9 @@ def draw_edges(g, graph_relationships, relationships, rel_filter_in, rel_filter_
 		else:
 			g.edge(str(edge_obj_sub[0]), str(edge_obj_sub[1]), label=rels, color='grey')
 
-
-def run(use_sampled_graphs=True, scan_id="4d3d82b6-8cf4-2e04-830a-4303fa0e79c7", split=None, with_manipulation=False,
-				data_path='./GT', outfolder="./vis_graphs/", graphfile='graphs_layout.yml'):
+#4d3d82b6-8cf4-2e04-830a-4303fa0e79c7
+def run(use_sampled_graphs=True, scan_id="6e67e550-1209-2cd0-8294-7cc2564cf82c", split="1", with_manipulation=False,
+				data_path='./GT', outfolder="./vis_graphs/", graphfile='graphs_layout.yml', gen_custom_scene=True):
 
 	if use_sampled_graphs:
 		# use this option to customize your own graphs in the yaml format
@@ -58,8 +58,13 @@ def run(use_sampled_graphs=True, scan_id="4d3d82b6-8cf4-2e04-830a-4303fa0e79c7",
 		graph_yaml = os.path.join(data_path, graphfile)
 	else:
 		# use this option to read scene graphs from the dataset
-		relationships_json = os.path.join(data_path, 'relationships_validation_clean.json') #"relationships_train.json")
-		objects_json = os.path.join(data_path, "objects.json")
+		# relationships_json = os.path.join(data_path, 'relationships_validation_clean.json') #"relationships_train.json")
+		# objects_json = os.path.join(data_path, "objects.json")
+		relationships_json = os.path.join(data_path, 'relationships_validation_one.json')
+		objects_json = os.path.join(data_path, "objects_one.json")
+		if gen_custom_scene:
+			convert_relationship_to_object(relationships_json, objects_json)
+			# breakpoint()	
 
 	relationships = viz_util.read_relationships(os.path.join(data_path, "relationships.txt"))
 
@@ -90,3 +95,36 @@ def run(use_sampled_graphs=True, scan_id="4d3d82b6-8cf4-2e04-830a-4303fa0e79c7",
 	color = [o['ply_color'] for o in graph[scan_id]['objects']]
 	# return used colors so that they can be used for 3D model visualization
 	return dict(zip(idx, color))
+
+def convert_relationship_to_object(relationship_path, output_path):
+    def generate_random_color():
+        return "#" + "".join(random.choices("0123456789abcdef", k=6))
+    
+    # relationship_path = os.path.abspath(relationship_path)
+    # output_path = os.path.abspath(output_path)
+    
+    with open(relationship_path, "r", encoding="utf-8") as file:
+        data = json.load(file)
+    
+    objects = []
+    seen_ids = set()
+    
+    for scan in data["scans"]:
+        for obj_id, label in scan["objects"].items():
+            if obj_id not in seen_ids:
+                objects.append({
+                    "ply_color": generate_random_color(),
+                    "label": label,
+                    "id": obj_id,
+                    "global_id": str(random.randint(1, 200)),
+                    "affordances": [],
+                    "attributes": {}
+                })
+                seen_ids.add(obj_id)
+    
+    output_data = {"scans": [{"scan": data["scans"][0]["scan"], "objects": objects}]} # only one scan
+    
+    with open(output_path, "w", encoding="utf-8") as file:
+        json.dump(output_data, file, indent=4, ensure_ascii=False)
+if __name__ == "__main__": 
+	run(use_sampled_graphs=False)
