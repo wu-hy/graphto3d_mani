@@ -132,6 +132,7 @@ dmypy.json
 # Pyre type checker
 .pyre/
 
-# gpt stuff
+# Haoliang's local stuff
 gpt/output_3RScan/
 gpt/wandb/
+model/VAE.py

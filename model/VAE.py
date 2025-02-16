@@ -114,7 +114,7 @@ class VAE(nn.Module):
             )
         elif self.type_ == 'shared':
             print()
-            ckpt = torch.load(os.path.join(exp, 'checkpoint', 'model{}.pth'.format(epoch))).state_dict()
+            ckpt = torch.load(os.path.join(exp, 'checkpoint', 'model{}.pth'.format(epoch)), weights_only = False).state_dict()
             self.vae.load_state_dict(
                 ckpt,
                 strict=strict

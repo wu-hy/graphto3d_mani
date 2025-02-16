@@ -1,77 +1,69 @@
 {
     "scans": [
         {
-            "scan": "ab835faa-54c6-29a1-9b55-1a5217fcba19",
+            "scan": "fake-scene",
             "objects": [
                 {
                     "ply_color": "#567586",
-                    "label": "floor",
-                    "id": "1",
+                    "label": "pillow",
+                    "id": "0",
                     "global_id": "11",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#caf0fc",
-                    "label": "toilet paper dispenser",
-                    "id": "23",
+                    "label": "side table",
+                    "id": "1",
                     "global_id": "186",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#8ee938",
-                    "label": "wall",
-                    "id": "4",
+                    "label": "side table",
+                    "id": "2",
                     "global_id": "92",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#738b55",
-                    "label": "wall",
-                    "id": "2",
+                    "label": "floor",
+                    "id": "3",
                     "global_id": "148",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#c3de05",
-                    "label": "toilet",
-                    "id": "6",
+                    "label": "pillow",
+                    "id": "4",
                     "global_id": "93",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#98d1d3",
-                    "label": "trash can",
-                    "id": "7",
+                    "label": "commode",
+                    "id": "5",
                     "global_id": "179",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#d3bc9a",
-                    "label": "wall",
-                    "id": "3",
+                    "label": "pillow",
+                    "id": "6",
                     "global_id": "74",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
                     "ply_color": "#ecce59",
-                    "label": "wall",
-                    "id": "12",
+                    "label": "box",
+                    "id": "7",
                     "global_id": "124",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#4c4bc9",
-                    "label": "door",
-                    "id": "5",
-                    "global_id": "161",
                     "affordances": [],
                     "attributes": {}
                 }

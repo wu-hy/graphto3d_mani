@@ -208,7 +208,7 @@ def main(scan_id="ab835faa-54c6-29a1-9b55-1a5217fcba19", split=1):
     tokenizer.pad_token = "[PAD]"
 
     model = GPT2LMHeadModel.from_pretrained(chpt_path)
-    json_path = "./GT/relationships_validation_clean.json"
+    json_path = "../GT/relationships_validation_clean.json"
     
     with open(json_path, "r", encoding="utf-8") as f:
             data = json.load(f)

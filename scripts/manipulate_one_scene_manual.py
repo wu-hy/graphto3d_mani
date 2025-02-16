@@ -1,5 +1,7 @@
+# This script generates the entire scene graph given some manually set triplets.
+
 from __future__ import print_function
-import open3d as o3d # open3d needs to be imported before other packages!
+# import open3d as o3d # open3d needs to be imported before other packages!
 import argparse
 import os
 import random
@@ -18,7 +20,7 @@ from helpers.visualize_scene import render
 import helpers.retrieval as retrieval
 from model.atlasnet import AE_AtlasNet
 
-from gpt.eval_scene_json import main as eval_one_scene
+from gpt.eval_scene_json_manual import main as eval_one_scene
 
 # import extension.dist_chamfer as ext
 # chamfer = ext.chamferDist()
@@ -59,7 +61,7 @@ def run_inference():
     set_random_seed(48)
 
     # Haoliang: eval 1 scene before start
-    eval_one_scene()
+    eval_one_scene("fake-scene", 1)
 
     argsJson = os.path.join(args.exp, 'args.json')
     assert os.path.exists(argsJson), 'Could not find args.json for experiment {}'.format(args.exp)
