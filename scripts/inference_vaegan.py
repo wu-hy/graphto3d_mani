@@ -26,19 +26,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--num_points', type=int, default=1024, help='number of points in the shape')
 
 parser.add_argument('--dataset', required=False, type=str, default="./GT", help="dataset path")
-parser.add_argument('--dataset_3RScan', type=str, default='', help="dataset path of 3RScan")
+parser.add_argument('--dataset_3RScan', type=str, default='/cluster/project/cvg/students/shangwu/3RScan_v2', help="dataset path of 3RScan")
 parser.add_argument('--label_file', required=False, type=str, default='labels.instances.align.annotated.ply', help="label file name")
 
 parser.add_argument('--with_points', type=bool_flag, default=False, help="if false, only predicts layout")
-parser.add_argument('--with_feats', type=bool_flag, default=True, help="Load Feats directly instead of points.")
+parser.add_argument('--with_feats', type=bool_flag, default=False, help="Load Feats directly instead of points.")
 
 parser.add_argument('--manipulate', default=True, type=bool_flag)
-parser.add_argument('--path2atlas', default="./experiments/model_36.pth", type=str)
-parser.add_argument('--exp', default='./experiments/layout_test', help='experiment name')
+parser.add_argument('--path2atlas', default="./experiments/atlasnet/model_70.pth", type=str)
+parser.add_argument('--exp', default='./experiments/final_checkpoints/shared', help='experiment name')
 parser.add_argument('--epoch', type=str, default='100', help='saved epoch')
 parser.add_argument('--recompute_stats', type=bool_flag, default=False, help='Recomputes statistics of evaluated networks')
 parser.add_argument('--evaluate_diversity', type=bool_flag, default=False, help='Computes diversity based on multiple predictions')
-parser.add_argument('--visualize', default=False, type=bool_flag)
+parser.add_argument('--visualize', default=True, type=bool_flag)
 parser.add_argument('--export_3d', default=False, type=bool_flag, help='Export the generated shapes and boxes in json files for future use')
 args = parser.parse_args()
 
@@ -187,7 +187,7 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
         dec_objs, dec_triples = dec_objs.cuda(), dec_triples.cuda()
 
         all_pred_boxes = []
-
+        # breakpoint()
         with torch.no_grad():
             boxes_pred, shapes_pred = model.sample_box_and_shape(point_classes_idx, point_ae, dec_objs, dec_triples, attributes=None)
             # breakpoint()
@@ -271,8 +271,8 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
             with open('render_inputs.pkl', 'wb') as f:
                 pickle.dump(render_inputs, f)
                 print("render inputs saved!!!!")
-            render(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
-                   shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True)
+            # render(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
+            #        shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True)
 
         all_pred_boxes.append(boxes_pred_den.cpu().detach())
         if with_diversity:

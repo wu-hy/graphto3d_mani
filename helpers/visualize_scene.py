@@ -20,7 +20,7 @@ def render(predBoxes, predAngles=None, classes=None, classed_idx=None, shapes_pr
     vis.create_window()
 
     ren_opt = vis.get_render_option()
-    # ren_opt.mesh_show_back_face = True
+    ren_opt.mesh_show_back_face = True
     ren_opt.line_width = 50.
 
     edges = [0, 1], [0, 2], [0, 4], [1, 3], [1, 5], [2, 3], [2, 6], [3, 7], [4, 5], [4, 6], [5, 7], [6, 7]
