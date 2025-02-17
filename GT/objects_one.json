@@ -1,37 +1,39 @@
 {
     "scans": [
         {
-            "scan": "ab835faa-54c6-29a1-9b55-1a5217fcba19",
+            "scan": "gpt-inference",
             "objects": [
                 {
-                    "ply_color": "#567586",
-                    "label": "wall",
-                    "id": "0",
-                    "global_id": "11",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#caf0fc",
+                    "ply_color": "#d62728",
                     "label": "chair",
-                    "id": "1",
-                    "global_id": "186",
+                    "id": "0",
+                    "global_id": "111",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
-                    "ply_color": "#8ee938",
+
+                    "ply_color": "#c49c94",
+                    "label": "wall",
+                    "id": "1",
+                    "global_id": "147",
+                    "affordances": [],
+                    "attributes": {}
+                },
+                {
+
+                    "ply_color": "#d62728",
                     "label": "chair",
                     "id": "2",
-                    "global_id": "92",
+                    "global_id": "132",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
-                    "ply_color": "#738b55",
+                    "ply_color": "#c5b0d5",
                     "label": "floor",
                     "id": "3",
-                    "global_id": "148",
+                    "global_id": "158",
                     "affordances": [],
                     "attributes": {}
                 }

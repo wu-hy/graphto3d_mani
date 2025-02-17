@@ -94,9 +94,9 @@ def render(predBoxes, predAngles=None, classes=None, classed_idx=None, shapes_pr
     vis.run()
     vis.destroy_window()
 
-def render_off_screen(predBoxes, predAngles=None, classes=None, classed_idx=None, shapes_pred=None,
+def render_off_screen(predBoxes, predAngles=None, scan_id=None, classes=None, classed_idx=None, shapes_pred=None,
            render_type='points', render_shapes=True, render_boxes=False,
-           colors=None, output_file="render_output.png"):
+           colors=None, output_folder=None):
     if render_type not in ['meshes', 'points']:
         raise ValueError('Render type needs to be either set to meshes or points.')
 
@@ -135,7 +135,7 @@ def render_off_screen(predBoxes, predAngles=None, classes=None, classed_idx=None
                 do_render_shape = True
 
         # Skip unwanted classes
-        if classes[classed_idx[i]].split('\n')[0] in ["ceiling", "door", "doorframe"]:
+        if classes[classed_idx[i]].split('\n')[0] in ["ceiling", "door", "doorframe", "wall"]:
             continue
 
         # Compute box corners
@@ -177,7 +177,6 @@ def render_off_screen(predBoxes, predAngles=None, classes=None, classed_idx=None
 
         # Optionally, add box edges as line geometries
         if render_boxes:
-            # Define edges as in your original code
             lines = np.array([[0, 1], [0, 2], [0, 4], [1, 3], [1, 5],
                               [2, 3], [2, 6], [3, 7], [4, 5], [4, 6],
                               [5, 7], [6, 7]])
@@ -197,18 +196,41 @@ def render_off_screen(predBoxes, predAngles=None, classes=None, classed_idx=None
     scene.add_geometry("coordinate_frame", coord_frame, mat)
 
     # Set up the camera. Adjust these parameters to get the desired view.
-    fov = 60.0  # Field of view in degrees
+    fov = 45.0  # Field of view in degrees
     center = [0, 0, 0]   # Look-at center of the scene
-    eye = [3, 3, 3]      # Camera position
+    eye = [6, 6, 6]      # Camera position
+
     up = [0, 0, 1]       # Up vector
     renderer.setup_camera(fov, center, eye, up)
 
     # Render the scene to an image and save to disk
     img = renderer.render_to_image()
-    o3d.io.write_image(output_file, img)
+    o3d.io.write_image(output_folder+scan_id+'_view1.png', img)
+
+    # Set up the camera. Adjust these parameters to get the desired view.
+    fov = 45.0  # Field of view in degrees
+    center = [0, 0, 0]   # Look-at center of the scene
+    eye = [0, 0, 10]     # Camera position
+    up = [0, 0, 1]       # Up vector
+    renderer.setup_camera(fov, center, eye, up)
+
+    # Render the scene to an image and save to disk
+    img = renderer.render_to_image()
+    o3d.io.write_image(output_folder+scan_id+'_view2.png', img)
+
+    # Set up the camera. Adjust these parameters to get the desired view.
+    fov = 45.0  # Field of view in degrees
+    center = [0, 0, 0]   # Look-at center of the scene
+    eye = [6, 6, -6]      # Camera position
+    up = [0, 0, 1]       # Up vector
+    renderer.setup_camera(fov, center, eye, up)
+
+    # Render the scene to an image and save to disk
+    img = renderer.render_to_image()
+    o3d.io.write_image(output_folder+scan_id+'_view3.png', img)
 
 if __name__ == "__main__":
-    with open('/cluster/project/cvg/students/shangwu/graphto3d_mani/helpers/render_bbox.pkl', 'rb') as f:
+    with open('/cluster/home/hanywu/scene_generation/graphto3d/render_inputs.pkl', 'rb') as f:
         print("ccccccccc")
         loaded_inputs = pickle.load(f)
         print("bbbbbbbbbbbbb")

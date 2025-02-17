@@ -8,7 +8,7 @@ import copy
 import dataset.util as util
 from tqdm import tqdm
 import json
-from helpers.psutil import FreeMemLinux
+from helpers.psutil_backup import FreeMemLinux
 from helpers.util import normalize_box_params, denormalize_box_params, get_rotation
 import random
 import pickle
@@ -66,7 +66,7 @@ class RIODatasetSceneGraph(data.Dataset):
         self.use_canonical = use_canonical
 
         # Haoliang
-        self.gen_custom_scene = True
+        self.gen_custom_scene = False
         self.use_txt_scene_graph = False
         self.scene_graph_path = os.path.join(root, 'triplets.txt')
         self.split = split
@@ -117,8 +117,8 @@ class RIODatasetSceneGraph(data.Dataset):
             # self.box_json_file = os.path.join(self.root, 'obj_boxes_val_refined.json')
             # self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_val.json')
             self.rel_json_file = os.path.join(self.root, 'relationships_validation_one.json')
-            self.box_json_file = os.path.join(self.root, 'obj_boxes_val_one.json')
-            self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_val_one.json')
+            self.box_json_file = os.path.join(self.root, 'obj_boxes_val_refined.json')  # fake bbox file
+            self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_val.json')
             # self.rel_json_file = os.path.join(self.root, 'relationships_train_clean.json')
             # self.box_json_file = os.path.join(self.root, 'obj_boxes_train_refined.json')
             # self.floor_json_file = os.path.join(self.root, 'floor_boxes_split_train.json')
@@ -480,18 +480,21 @@ class RIODatasetSceneGraph(data.Dataset):
         # print("#############")
         # print(os.path.join(self.root_3rscan, scan_id_no_split,"semseg.v2.json"))
 
-        # if self.generate_custom_scene:
 
         if os.path.exists(os.path.join(self.root_3rscan, scan_id_no_split, "semseg.v2.json")):
             semseg_file = os.path.join(self.root_3rscan, scan_id_no_split, "semseg.v2.json")
         elif os.path.exists(os.path.join(self.root_3rscan, scan_id_no_split, "semseg.json")):
             semseg_file = os.path.join(self.root_3rscan, scan_id_no_split, "semseg.json")
         else:
-            raise FileNotFoundError("Cannot find semseg.json file.")
+            self.gen_custom_scene = True
+            print("Generate Custom Scene!!!")
+            # raise FileNotFoundError("Cannot find semseg.json file.")
 
-        # instance2label, e.g. {1: 'floor', 2: 'wall', 3: 'picture', 4: 'picture'}
-        instance2label = self.load_semseg(semseg_file) # instances in semseg file {31: 'doorframe', 14: 'toilet', 9: 'wall'...
+        if not self.gen_custom_scene:
+            # instance2label, e.g. {1: 'floor', 2: 'wall', 3: 'picture', 4: 'picture'}
+            instance2label = self.load_semseg(semseg_file) # instances in semseg file {31: 'doorframe', 14: 'toilet', 9: 'wall'...
         selected_instances = list(self.objs_json[scan_id].keys()) # [1 2 3 4 6]
+        # breakpoint()
         if self.gen_custom_scene and self.split is not "train_scans": 
             instance2label = self.objs_json[scan_id]
         keys = list(instance2label.keys()) # [31, 14, 9 ...]
@@ -572,7 +575,7 @@ class RIODatasetSceneGraph(data.Dataset):
                 instance2mask[scene_instance_id] = 0
 
             # mask to cat:
-            if (scene_class_id >= 0) and (scene_instance_id > 0) and (key in selected_instances):
+            if (scene_class_id >= 0) and (scene_instance_id > 0) and (key in selected_instances) and not self.gen_custom_scene:
                 if self.use_canonical:
                     # breakpoint()
                     direction = self.tight_boxes_json[scan_id][key]['direction']
@@ -605,6 +608,10 @@ class RIODatasetSceneGraph(data.Dataset):
                 if not self.vae_baseline:
                     bbox = normalize_box_params(bbox)
                 tight_boxes.append(bbox)
+            if self.gen_custom_scene:
+                cat.append(scene_class_id)
+                instances_order.append(key)
+                tight_boxes.append(np.array([-1, -1, -1, -1, -1, -1, -1]))
         # breakpoint()
 
         if self.with_feats:
@@ -676,6 +683,7 @@ class RIODatasetSceneGraph(data.Dataset):
             rel_json = self.relationship_json[scan_id]
 
             for r in rel_json: # create relationship triplets from data
+                # breakpoint()
                 if r[0] in instance2mask.keys() and r[1] in instance2mask.keys(): # key is local instance id 
                     subject = instance2mask[r[0]] - 1
                     object = instance2mask[r[1]] - 1
@@ -787,6 +795,7 @@ class RIODatasetSceneGraph(data.Dataset):
                     else:
                         return -1
                 elif output['manipulate']['type'] == 'relationship':
+                    # rel, pair, suc = self.modify_custom_relship(output['decoder'], [2, 2, 4],[2, 3, 4])
                     rel, pair, suc = self.modify_relship(output['decoder'], interpretable=True)
                     if suc:
                         output['manipulate']['relship'] = (rel, pair)
@@ -891,8 +900,8 @@ class RIODatasetSceneGraph(data.Dataset):
 
         did_change = False
         trials = 0
-        excluded = [27]
-        eval_excluded = [27, 58, 155]
+        excluded = [27] # ceiling
+        eval_excluded = [27, 58, 155] # ceiling, floor, wall
 
         while not did_change and trials < 1000:
             idx = np.random.randint(len(graph['triples']))
@@ -913,6 +922,18 @@ class RIODatasetSceneGraph(data.Dataset):
 
             graph['triples'][idx][1] = new_pred
             did_change = True
+        return idx, (sub, obj), did_change
+    
+    def modify_custom_relship(self, graph, original_triple, new_triple):
+        did_change = False
+        idx = None
+        for i, tri in enumerate(graph['triples']):
+            if original_triple == tri:
+                graph['triples'][i] = new_triple
+                idx = i
+                sub, pred, obj = original_triple
+                did_change = True
+
         return idx, (sub, obj), did_change
 
     def __len__(self):

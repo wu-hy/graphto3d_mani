@@ -61,8 +61,9 @@ def run(use_sampled_graphs=True, scan_id="6e67e550-1209-2cd0-8294-7cc2564cf82c",
 		# relationships_json = os.path.join(data_path, 'relationships_validation_clean.json') #"relationships_train.json")
 		# objects_json = os.path.join(data_path, "objects.json")
 		relationships_json = os.path.join(data_path, 'relationships_validation_one.json')
-		objects_json = os.path.join(data_path, "objects_one.json")
+		objects_json = os.path.join(data_path, "objects.json")
 		if gen_custom_scene:
+			objects_json = os.path.join(data_path, "objects_one.json")
 			convert_relationship_to_object(relationships_json, objects_json)
 			# breakpoint()	
 
@@ -97,8 +98,19 @@ def run(use_sampled_graphs=True, scan_id="6e67e550-1209-2cd0-8294-7cc2564cf82c",
 	return dict(zip(idx, color))
 
 def convert_relationship_to_object(relationship_path, output_path):
-    def generate_random_color():
-        return "#" + "".join(random.choices("0123456789abcdef", k=6))
+    colors_hex = [
+    "#98df8a",   
+    "#2ca02c",    
+    "#ff9896",    
+    "#d62728",    
+    "#c5b0d5",    
+    "#9467bd",    
+    "#c49c94",    
+    "#8c564b",    
+    "#f7b6d2",
+	"#e377c2",
+	"#dbdb8d",     
+	]
     
     # relationship_path = os.path.abspath(relationship_path)
     # output_path = os.path.abspath(output_path)
@@ -108,12 +120,11 @@ def convert_relationship_to_object(relationship_path, output_path):
     
     objects = []
     seen_ids = set()
-    
     for scan in data["scans"]:
         for obj_id, label in scan["objects"].items():
             if obj_id not in seen_ids:
                 objects.append({
-                    "ply_color": generate_random_color(),
+                    "ply_color": random.choices(colors_hex)[0],
                     "label": label,
                     "id": obj_id,
                     "global_id": str(random.randint(1, 200)),
