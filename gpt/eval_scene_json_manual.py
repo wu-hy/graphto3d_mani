@@ -182,7 +182,9 @@ def eval_scene(model, tokenizer, scan, save_dir=None, vis_triplets=False, lines_
             continue
 
         # Skip triplets that involve the nodes from triplet_to_add.
-        if triplet_to_add_parts and (subject_label == triplet_to_add_parts[0] or object_label == triplet_to_add_parts[2]):
+        if triplet_to_add and (f"{triplet_to_add_parts[0]} {triplet_to_add_parts[1]}" == subject_label or f"{triplet_to_add_parts[0]} {triplet_to_add_parts[1]}" == object_label):
+            print(f"skipping rel {rel} because it involves the node {triplet_to_add_parts[0]} {triplet_to_add_parts[1]}")
+            print(f"subj {subject_label} obj {object_label}")
             continue
 
         triplet_str = f"[SUB] {subject_label} [/SUB] [OBJ] {object_label} [/OBJ] [REL] {relation_label} [/REL]"
@@ -193,8 +195,8 @@ def eval_scene(model, tokenizer, scan, save_dir=None, vis_triplets=False, lines_
     add_triplets = []
     if triplet_to_add_parts:
         sub_label_add, sub_idx, obj_label_add, obj_idx, rel_label_add = triplet_to_add_parts
-        sub_label_add = sub_label_add + " " + sub_idx
-        obj_label_add = obj_label_add + " " + obj_idx
+        sub_label_add = f"{sub_label_add} {sub_idx}"
+        obj_label_add = f"{obj_label_add} {obj_idx}"
         # Add the main extra triplet.
         main_triplet = f"[SUB] {sub_label_add} [/SUB] [OBJ] {obj_label_add} [/OBJ] [REL] {rel_label_add} [/REL]"
         add_triplets.append(main_triplet)
@@ -206,7 +208,9 @@ def eval_scene(model, tokenizer, scan, save_dir=None, vis_triplets=False, lines_
                 continue
             extra_triplet = f"[SUB] {sub_label_add} [/SUB] [OBJ] {obj_name} [/OBJ] [REL] [PAD] [/REL]"
             add_triplets.append(extra_triplet)
-            gt_triplets.append(f"{sub_label_add} {obj_name} {rel_label_add}")
+            gt_triplets.append(f"{sub_label_add} {obj_name} [PAD]")
+        # import pdb
+        # pdb.set_trace()
 
     def generate_next_token(current_text):
         """
@@ -313,8 +317,8 @@ def main(scan_id="ab835faa-54c6-29a1-9b55-1a5217fcba19", split=1):
     json_obj, obj = construct_objects_from_txt(txt_path)
     rels = construct_relationships_from_txt(txt_path, obj, rel_dict)
     scan = construct_scan_from_input(scan_id, split, json_obj, rels)
-    lines_to_keep = [9, 14]
-    triplet_to_add = "pillow 1 pillow 3 left"
+    lines_to_keep = []
+    triplet_to_add = "chair 1 chair 2 left"
 
 
     eval_scene(model, tokenizer, scan, save_dir="./GT", lines_to_keep=list(lines_to_keep), triplet_to_add=triplet_to_add)

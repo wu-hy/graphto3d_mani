@@ -5,7 +5,7 @@
             "objects": [
                 {
                     "ply_color": "#567586",
-                    "label": "side table",
+                    "label": "wall",
                     "id": "0",
                     "global_id": "11",
                     "affordances": [],
@@ -13,7 +13,7 @@
                 },
                 {
                     "ply_color": "#caf0fc",
-                    "label": "floor",
+                    "label": "chair",
                     "id": "1",
                     "global_id": "186",
                     "affordances": [],
@@ -21,7 +21,7 @@
                 },
                 {
                     "ply_color": "#8ee938",
-                    "label": "pillow",
+                    "label": "chair",
                     "id": "2",
                     "global_id": "92",
                     "affordances": [],
@@ -29,41 +29,9 @@
                 },
                 {
                     "ply_color": "#738b55",
-                    "label": "side table",
+                    "label": "floor",
                     "id": "3",
                     "global_id": "148",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#c3de05",
-                    "label": "pillow",
-                    "id": "4",
-                    "global_id": "93",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#98d1d3",
-                    "label": "pillow",
-                    "id": "5",
-                    "global_id": "179",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#d3bc9a",
-                    "label": "commode",
-                    "id": "6",
-                    "global_id": "74",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#ecce59",
-                    "label": "box",
-                    "id": "7",
-                    "global_id": "124",
                     "affordances": [],
                     "attributes": {}
                 }

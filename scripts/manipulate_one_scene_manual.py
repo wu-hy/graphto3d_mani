@@ -16,7 +16,7 @@ from dataset.dataset import RIODatasetSceneGraph, collate_fn_vaegan, collate_fn_
 from helpers.util import bool_flag, batch_torch_denormalize_box_params
 from helpers.metrics import validate_constrains, validate_constrains_changes, estimate_angular_std
 from helpers.visualize_graph import run as vis_graph
-from helpers.visualize_scene import render
+from helpers.visualize_scene import render_off_screen
 import helpers.retrieval as retrieval
 from model.atlasnet import AE_AtlasNet
 
@@ -61,7 +61,7 @@ def run_inference():
     set_random_seed(48)
 
     # Haoliang: eval 1 scene before start
-    eval_one_scene()
+    eval_one_scene("0cac75e8-8d6f-2d13-8fc4-acdbf00437c8", 3)
 
     argsJson = os.path.join(args.exp, 'args.json')
     assert os.path.exists(argsJson), 'Could not find args.json for experiment {}'.format(args.exp)
@@ -263,21 +263,21 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
             colors = np.asarray(colors) / 255.
 
             # layout and shape visualization through open3d
-            render_inputs = {
-                'boxes_pred_den': boxes_pred_den,
-                'angles_pred': angles_pred,
-                'classes': vocab['object_idx_to_name'],
-                'render_type': 'points',
-                'classed_idx': dec_objs,
-                'shapes_pred': shapes_pred.cpu().detach(),
-                'colors': colors,
-                'render_boxes': True,
-                'output_path': args.exp + "/vis_scenes/"
-                }
-            with open('render_inputs.pkl', 'wb') as f:
-                pickle.dump(render_inputs, f)
-                print("render inputs saved!!!!")
-            render(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
+            # render_inputs = {
+            #     'boxes_pred_den': boxes_pred_den,
+            #     'angles_pred': angles_pred,
+            #     'classes': vocab['object_idx_to_name'],
+            #     'render_type': 'points',
+            #     'classed_idx': dec_objs,
+            #     'shapes_pred': shapes_pred.cpu().detach(),
+            #     'colors': colors,
+            #     'render_boxes': True,
+            #     'output_path': args.exp + "/vis_scenes/"
+            #     }
+            # with open('render_inputs.pkl', 'wb') as f:
+            #     pickle.dump(render_inputs, f)
+            #     print("render inputs saved!!!!")
+            render_off_screen(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
                    shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True)
 
         all_pred_boxes.append(boxes_pred_den.cpu().detach())
