@@ -13,7 +13,7 @@ from dataset.dataset import RIODatasetSceneGraph, collate_fn_vaegan, collate_fn_
 from helpers.util import bool_flag, batch_torch_denormalize_box_params
 from helpers.metrics import validate_constrains, validate_constrains_changes, estimate_angular_std
 from helpers.visualize_graph import run as vis_graph
-from helpers.visualize_scene import render
+from helpers.visualize_scene import render, render_off_screen
 import helpers.retrieval as retrieval
 from model.atlasnet import AE_AtlasNet
 
@@ -25,19 +25,19 @@ parser = argparse.ArgumentParser()
 parser.add_argument('--num_points', type=int, default=1024, help='number of points in the shape')
 
 parser.add_argument('--dataset', required=False, type=str, default="./GT", help="dataset path")
-parser.add_argument('--dataset_3RScan', type=str, default='', help="dataset path of 3RScan")
+parser.add_argument('--dataset_3RScan', type=str, default='/cluster/project/cvg/students/shangwu/3RScan_v2', help="dataset path of 3RScan")
 parser.add_argument('--label_file', required=False, type=str, default='labels.instances.align.annotated.ply', help="label file name")
 
 parser.add_argument('--with_points', type=bool_flag, default=False, help="if false, only predicts layout")
 parser.add_argument('--with_feats', type=bool_flag, default=True, help="Load Feats directly instead of points.")
 
 parser.add_argument('--manipulate', default=True, type=bool_flag)
-parser.add_argument('--path2atlas', default="./experiments/model_36.pth", type=str)
-parser.add_argument('--exp', default='./experiments/layout_test', help='experiment name')
+parser.add_argument('--path2atlas', default="./experiments/atlasnet/model_70.pth", type=str)
+parser.add_argument('--exp', default='./experiments/final_checkpoints/shared', help='experiment name')
 parser.add_argument('--epoch', type=str, default='100', help='saved epoch')
 parser.add_argument('--recompute_stats', type=bool_flag, default=False, help='Recomputes statistics of evaluated networks')
 parser.add_argument('--evaluate_diversity', type=bool_flag, default=False, help='Computes diversity based on multiple predictions')
-parser.add_argument('--visualize', default=False, type=bool_flag)
+parser.add_argument('--visualize', default=True, type=bool_flag)
 parser.add_argument('--export_3d', default=False, type=bool_flag, help='Export the generated shapes and boxes in json files for future use')
 args = parser.parse_args()
 
@@ -303,115 +303,115 @@ def validate_constrains_loop_w_changes(testdataloader, model, with_diversity=Tru
                 if with_angles and angles_pred is None:
                     boxes_pred, angles_pred = boxes_pred
 
-            if with_diversity:
-                # Run multiple times to obtain diversity
-                # Only when a node was added or manipulated we run the diversity computation
-                if len(missing_nodes) > 0 or len(manipulated_nodes) > 0:
-                    # Diversity results for this dataset sample
-                    boxes_diversity_sample, shapes_sample, angle_diversity_sample, diversity_retrieval_ids_sample = [], [], [], []
+            # if with_diversity:
+            #     # Run multiple times to obtain diversity
+            #     # Only when a node was added or manipulated we run the diversity computation
+            #     if len(missing_nodes) > 0 or len(manipulated_nodes) > 0:
+            #         # Diversity results for this dataset sample
+            #         boxes_diversity_sample, shapes_sample, angle_diversity_sample, diversity_retrieval_ids_sample = [], [], [], []
 
-                    for sample in range(num_samples):
-                        # Generated changes
-                        diversity_angles = None
-                        if args.manipulate:
-                            diversity_boxes, diversity_points, diversity_keep = model.decoder_with_changes_boxes_and_shape(
-                                z_box, z_shape, dec_objs, dec_triples, attributes, missing_nodes, manipulated_nodes,
-                                atlas)
-                        else:
-                            diversity_boxes, diversity_angles, diversity_points, diversity_keep = model.decoder_with_additions_boxes_and_shape(
-                                z_box, z_shape, dec_objs, dec_triples, attributes, missing_nodes, manipulated_nodes,
-                                atlas)
+            #         for sample in range(num_samples):
+            #             # Generated changes
+            #             diversity_angles = None
+            #             if args.manipulate:
+            #                 diversity_boxes, diversity_points, diversity_keep = model.decoder_with_changes_boxes_and_shape(
+            #                     z_box, z_shape, dec_objs, dec_triples, attributes, missing_nodes, manipulated_nodes,
+            #                     atlas)
+            #             else:
+            #                 diversity_boxes, diversity_angles, diversity_points, diversity_keep = model.decoder_with_additions_boxes_and_shape(
+            #                     z_box, z_shape, dec_objs, dec_triples, attributes, missing_nodes, manipulated_nodes,
+            #                     atlas)
 
-                        if with_angles and diversity_angles is None:
-                            diversity_boxes, diversity_angles = diversity_boxes
+            #             if with_angles and diversity_angles is None:
+            #                 diversity_boxes, diversity_angles = diversity_boxes
 
-                        if model.type_ == 'sln':
-                            dec_objs_filtered = dec_objs[diversity_keep[:,0] == 0]
-                            diversity_boxes_filtered = diversity_boxes[diversity_keep[:,0] == 0]
-                            dec_objs_filtered = dec_objs_filtered.reshape((-1, 1))
-                            diversity_boxes = diversity_boxes.reshape((-1, 6))
-                            diversity_points_retrieved, diversity_retrieval_ids_ivd = retrieval.rio_retrieve(
-                                dec_objs_filtered, diversity_boxes_filtered, testdataloader.dataset.vocab, cat2objs,
-                                testdataloader.dataset.root_3rscan, skip_scene_node=False, return_retrieval_id=True)
-                            diversity_points = torch.zeros((len(dec_objs), 1024, 3))
-                            diversity_points[diversity_keep[:,0] == 0] = diversity_points_retrieved
-                            diversity_retrieval_ids = [''] * len(dec_objs)
-                            diversity_retrieval_ids_ivd = diversity_retrieval_ids_ivd.tolist()
-                            for i in range(len(dec_objs)):
-                                if diversity_keep[i, 0].cpu().numpy() == 0:
-                                    diversity_retrieval_ids[i] = diversity_retrieval_ids_ivd.pop(0)
-                            diversity_retrieval_ids = np.asarray(diversity_retrieval_ids, dtype=np.str_)
+            #             if model.type_ == 'sln':
+            #                 dec_objs_filtered = dec_objs[diversity_keep[:,0] == 0]
+            #                 diversity_boxes_filtered = diversity_boxes[diversity_keep[:,0] == 0]
+            #                 dec_objs_filtered = dec_objs_filtered.reshape((-1, 1))
+            #                 diversity_boxes = diversity_boxes.reshape((-1, 6))
+            #                 diversity_points_retrieved, diversity_retrieval_ids_ivd = retrieval.rio_retrieve(
+            #                     dec_objs_filtered, diversity_boxes_filtered, testdataloader.dataset.vocab, cat2objs,
+            #                     testdataloader.dataset.root_3rscan, skip_scene_node=False, return_retrieval_id=True)
+            #                 diversity_points = torch.zeros((len(dec_objs), 1024, 3))
+            #                 diversity_points[diversity_keep[:,0] == 0] = diversity_points_retrieved
+            #                 diversity_retrieval_ids = [''] * len(dec_objs)
+            #                 diversity_retrieval_ids_ivd = diversity_retrieval_ids_ivd.tolist()
+            #                 for i in range(len(dec_objs)):
+            #                     if diversity_keep[i, 0].cpu().numpy() == 0:
+            #                         diversity_retrieval_ids[i] = diversity_retrieval_ids_ivd.pop(0)
+            #                 diversity_retrieval_ids = np.asarray(diversity_retrieval_ids, dtype=np.str_)
 
-                        # Computing shape diversity on canonical and normalized shapes
-                        normalized_points = []
-                        filtered_diversity_retrieval_ids = []
-                        for ins_id, obj_id in enumerate(dec_objs):
-                            if obj_id != 0 and obj_id in testdataloader.dataset.point_classes_idx:
-                                # We only care for manipulated nodes
-                                if diversity_keep[ins_id, 0] == 1:
-                                    continue
-                                points = diversity_points[ins_id]
-                                if type(points) is torch.Tensor:
-                                    points = points.cpu().numpy()
-                                if points is None:
-                                    continue
-                                # Normalizing shapes
-                                points = torch.from_numpy(normalize(points))
-                                if torch.cuda.is_available():
-                                    points = points.cuda()
-                                normalized_points.append(points)
-                                if model.type_ == 'sln':
-                                    filtered_diversity_retrieval_ids.append(diversity_retrieval_ids[ins_id])
+            #             # Computing shape diversity on canonical and normalized shapes
+            #             normalized_points = []
+            #             filtered_diversity_retrieval_ids = []
+            #             for ins_id, obj_id in enumerate(dec_objs):
+            #                 if obj_id != 0 and obj_id in testdataloader.dataset.point_classes_idx:
+            #                     # We only care for manipulated nodes
+            #                     if diversity_keep[ins_id, 0] == 1:
+            #                         continue
+            #                     points = diversity_points[ins_id]
+            #                     if type(points) is torch.Tensor:
+            #                         points = points.cpu().numpy()
+            #                     if points is None:
+            #                         continue
+            #                     # Normalizing shapes
+            #                     points = torch.from_numpy(normalize(points))
+            #                     if torch.cuda.is_available():
+            #                         points = points.cuda()
+            #                     normalized_points.append(points)
+            #                     if model.type_ == 'sln':
+            #                         filtered_diversity_retrieval_ids.append(diversity_retrieval_ids[ins_id])
 
-                        # We use keep to filter changed nodes
-                        boxes_diversity_sample.append(diversity_boxes[diversity_keep[:, 0] == 0])
+            #             # We use keep to filter changed nodes
+            #             boxes_diversity_sample.append(diversity_boxes[diversity_keep[:, 0] == 0])
 
-                        if with_angles:
-                            # We use keep to filter changed nodes
-                            angle_diversity_sample.append(np.expand_dims(np.argmax(diversity_angles[diversity_keep[:, 0] == 0].cpu().numpy(), 1), 1) / 24. * 360.)
+            #             if with_angles:
+            #                 # We use keep to filter changed nodes
+            #                 angle_diversity_sample.append(np.expand_dims(np.argmax(diversity_angles[diversity_keep[:, 0] == 0].cpu().numpy(), 1), 1) / 24. * 360.)
 
-                        if len(normalized_points) > 0:
-                            shapes_sample.append(torch.stack(normalized_points)) # keep has already been applied for points
-                            if model.type_ == 'sln':
-                                diversity_retrieval_ids_sample.append(np.stack(filtered_diversity_retrieval_ids)) # keep has already been applied for points
-                    # Compute standard deviation for box for this sample
-                    if len(boxes_diversity_sample) > 0:
-                        boxes_diversity_sample = torch.stack(boxes_diversity_sample, 1)
-                        bs = boxes_diversity_sample.shape[0]
-                        if model.type_ != 'sln':
-                            boxes_diversity_sample = batch_torch_denormalize_box_params(boxes_diversity_sample.reshape([-1, 6])).reshape([bs, -1, 6])
-                        all_diversity_boxes += torch.std(boxes_diversity_sample, dim=1).cpu().numpy().tolist()
+            #             if len(normalized_points) > 0:
+            #                 shapes_sample.append(torch.stack(normalized_points)) # keep has already been applied for points
+            #                 if model.type_ == 'sln':
+            #                     diversity_retrieval_ids_sample.append(np.stack(filtered_diversity_retrieval_ids)) # keep has already been applied for points
+            #         # Compute standard deviation for box for this sample
+            #         if len(boxes_diversity_sample) > 0:
+            #             boxes_diversity_sample = torch.stack(boxes_diversity_sample, 1)
+            #             bs = boxes_diversity_sample.shape[0]
+            #             if model.type_ != 'sln':
+            #                 boxes_diversity_sample = batch_torch_denormalize_box_params(boxes_diversity_sample.reshape([-1, 6])).reshape([bs, -1, 6])
+            #             all_diversity_boxes += torch.std(boxes_diversity_sample, dim=1).cpu().numpy().tolist()
 
-                    # Compute standard deviation for angle for this sample
-                    if len(angle_diversity_sample) > 0:
-                        angle_diversity_sample = np.stack(angle_diversity_sample, 1)
-                        all_diversity_angles += [estimate_angular_std(d[:,0]) for d in angle_diversity_sample]
+            #         # Compute standard deviation for angle for this sample
+            #         if len(angle_diversity_sample) > 0:
+            #             angle_diversity_sample = np.stack(angle_diversity_sample, 1)
+            #             all_diversity_angles += [estimate_angular_std(d[:,0]) for d in angle_diversity_sample]
 
-                    # Compute chamfer distances for shapes for this sample
-                    if len(shapes_sample) > 0:
-                        if len(diversity_retrieval_ids_sample) > 0:
-                            diversity_retrieval_ids_sample = np.stack(diversity_retrieval_ids_sample, 1)
+            #         # Compute chamfer distances for shapes for this sample
+            #         if len(shapes_sample) > 0:
+            #             if len(diversity_retrieval_ids_sample) > 0:
+            #                 diversity_retrieval_ids_sample = np.stack(diversity_retrieval_ids_sample, 1)
 
-                        shapes_sample = torch.stack(shapes_sample, 1)
-                        for shapes_id in range(len(shapes_sample)):
-                            # Taking a single predicted shape
-                            shapes = shapes_sample[shapes_id]
-                            if len(diversity_retrieval_ids_sample) > 0:
-                                # To avoid that retrieval the object ids like 0,1,0,1,0 gives high error
-                                # We sort them to measure how often different objects are retrieved 0,0,0,1,1
-                                diversity_retrieval_ids = diversity_retrieval_ids_sample[shapes_id]
-                                sorted_idx = diversity_retrieval_ids.argsort()
-                                shapes = shapes[sorted_idx]
-                            sequence_diversity = []
-                            # Iterating through its multiple runs
-                            for shape_sequence_id in range(len(shapes) - 1):
-                                # Compute chamfer with the next shape in its sequences
-                                dist1, dist2 = chamfer(shapes[shape_sequence_id:shape_sequence_id + 1].float(),
-                                                       shapes[shape_sequence_id + 1:shape_sequence_id + 2].float())
-                                chamfer_dist = torch.mean(dist1) + torch.mean(dist2)
-                                # Save the distance
-                                sequence_diversity += [chamfer_dist.cpu().numpy().tolist()]
-                            all_diversity_chamfer.append(np.mean(sequence_diversity))
+            #             shapes_sample = torch.stack(shapes_sample, 1)
+            #             for shapes_id in range(len(shapes_sample)):
+            #                 # Taking a single predicted shape
+            #                 shapes = shapes_sample[shapes_id]
+            #                 if len(diversity_retrieval_ids_sample) > 0:
+            #                     # To avoid that retrieval the object ids like 0,1,0,1,0 gives high error
+            #                     # We sort them to measure how often different objects are retrieved 0,0,0,1,1
+            #                     diversity_retrieval_ids = diversity_retrieval_ids_sample[shapes_id]
+            #                     sorted_idx = diversity_retrieval_ids.argsort()
+            #                     shapes = shapes[sorted_idx]
+            #                 sequence_diversity = []
+            #                 # Iterating through its multiple runs
+            #                 for shape_sequence_id in range(len(shapes) - 1):
+            #                     # Compute chamfer with the next shape in its sequences
+            #                     dist1, dist2 = chamfer(shapes[shape_sequence_id:shape_sequence_id + 1].float(),
+            #                                            shapes[shape_sequence_id + 1:shape_sequence_id + 2].float())
+            #                     chamfer_dist = torch.mean(dist1) + torch.mean(dist2)
+            #                     # Save the distance
+            #                     sequence_diversity += [chamfer_dist.cpu().numpy().tolist()]
+            #                 all_diversity_chamfer.append(np.mean(sequence_diversity))
         bp = []
         for i in range(len(keep)):
             if keep[i] == 0:
@@ -429,13 +429,13 @@ def validate_constrains_loop_w_changes(testdataloader, model, with_diversity=Tru
         accuracy_unchanged = validate_constrains(dec_triples, boxes_pred, dec_tight_boxes, keep, model.vocab,
                                                  accuracy_unchanged, with_norm=model.type_ != 'sln')
 
-    if with_diversity:
-        print("DIVERSITY:")
-        print("\tShape (Avg. Chamfer Distance) = %f" % (np.mean(all_diversity_chamfer)))
-        print("\tBox (Std. metric size and location) = %f, %f" % (
-            np.mean(np.mean(all_diversity_boxes, axis=0)[:3]),
-            np.mean(np.mean(all_diversity_boxes, axis=0)[3:])))
-        print("\tAngle (Std.) %s = %f" % (k, np.mean(all_diversity_angles)))
+    # if with_diversity:
+    #     print("DIVERSITY:")
+    #     print("\tShape (Avg. Chamfer Distance) = %f" % (np.mean(all_diversity_chamfer)))
+    #     print("\tBox (Std. metric size and location) = %f, %f" % (
+    #         np.mean(np.mean(all_diversity_boxes, axis=0)[:3]),
+    #         np.mean(np.mean(all_diversity_boxes, axis=0)[3:])))
+    #     print("\tAngle (Std.) %s = %f" % (k, np.mean(all_diversity_angles)))
 
     keys = list(accuracy.keys())
     for dic, typ in [(accuracy, "changed nodes"), (accuracy_unchanged, 'unchanged nodes'),
@@ -548,95 +548,99 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
             colors = np.asarray(colors) / 255.
 
             # layout and shape visualization through open3d
-            render(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
-                   shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True)
+            # render(boxes_pred_den, angles_pred, classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
+            #        shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True)
+            if split != '':
+                scan_id = scan_id + '_' + split
+            render_off_screen(boxes_pred_den, angles_pred, scan_id = scan_id ,classes=vocab['object_idx_to_name'], render_type='points', classed_idx=dec_objs,
+                   shapes_pred=shapes_pred.cpu().detach(), colors=colors, render_boxes=True, output_folder=args.exp + "/vis_graphs/")
 
         all_pred_boxes.append(boxes_pred_den.cpu().detach())
-        if with_diversity:
+        # if with_diversity:
 
-            # Run multiple times to obtain diversities
-            # Diversity results for this dataset sample
-            boxes_diversity_sample, shapes_sample, angle_diversity_sample, diversity_retrieval_ids_sample = [], [], [], []
-            for sample in range(num_samples):
-                diversity_boxes, diversity_points = model.sample_box_and_shape(point_classes_idx, point_ae, dec_objs, dec_triples,
-                                                                               attributes=None)
-                if with_angles:
-                    diversity_boxes, diversity_angles = diversity_boxes
-                if model.type_ == 'sln':
-                    diversity_points, diversity_retrieval_ids = retrieval.rio_retrieve(
-                        dec_objs, diversity_boxes, vocab, cat2objs, testdataloader.dataset.root_3rscan,
-                        return_retrieval_id=True)
-                else:
-                    diversity_points = diversity_points[0]
+        #     # Run multiple times to obtain diversities
+        #     # Diversity results for this dataset sample
+        #     boxes_diversity_sample, shapes_sample, angle_diversity_sample, diversity_retrieval_ids_sample = [], [], [], []
+        #     for sample in range(num_samples):
+        #         diversity_boxes, diversity_points = model.sample_box_and_shape(point_classes_idx, point_ae, dec_objs, dec_triples,
+        #                                                                        attributes=None)
+        #         if with_angles:
+        #             diversity_boxes, diversity_angles = diversity_boxes
+        #         if model.type_ == 'sln':
+        #             diversity_points, diversity_retrieval_ids = retrieval.rio_retrieve(
+        #                 dec_objs, diversity_boxes, vocab, cat2objs, testdataloader.dataset.root_3rscan,
+        #                 return_retrieval_id=True)
+        #         else:
+        #             diversity_points = diversity_points[0]
 
-                # Computing shape diversity on canonical and normalized shapes
-                normalized_points = []
-                filtered_diversity_retrieval_ids = []
-                for ins_id, obj_id in enumerate(dec_objs):
-                    if obj_id != 0 and obj_id in testdataloader.dataset.point_classes_idx:
-                        points = diversity_points[ins_id]
-                        if type(points) is torch.Tensor:
-                            points = points.cpu().numpy()
-                        if points is None:
-                            continue
-                        # Normalizing shapes
-                        points = torch.from_numpy(normalize(points))
-                        if torch.cuda.is_available():
-                            points = points.cuda()
-                        normalized_points.append(points)
-                        if model.type_ == 'sln':
-                            filtered_diversity_retrieval_ids.append(diversity_retrieval_ids[ins_id])
+        #         # Computing shape diversity on canonical and normalized shapes
+        #         normalized_points = []
+        #         filtered_diversity_retrieval_ids = []
+        #         for ins_id, obj_id in enumerate(dec_objs):
+        #             if obj_id != 0 and obj_id in testdataloader.dataset.point_classes_idx:
+        #                 points = diversity_points[ins_id]
+        #                 if type(points) is torch.Tensor:
+        #                     points = points.cpu().numpy()
+        #                 if points is None:
+        #                     continue
+        #                 # Normalizing shapes
+        #                 points = torch.from_numpy(normalize(points))
+        #                 if torch.cuda.is_available():
+        #                     points = points.cuda()
+        #                 normalized_points.append(points)
+        #                 if model.type_ == 'sln':
+        #                     filtered_diversity_retrieval_ids.append(diversity_retrieval_ids[ins_id])
 
-                # We use keep to filter changed nodes
-                boxes_diversity_sample.append(diversity_boxes)
+        #         # We use keep to filter changed nodes
+        #         boxes_diversity_sample.append(diversity_boxes)
 
-                if with_angles:
-                    # We use keep to filter changed nodes
-                    angle_diversity_sample.append(np.expand_dims(np.argmax(diversity_angles.cpu().numpy(), 1), 1) / 24. * 360.)
+        #         if with_angles:
+        #             # We use keep to filter changed nodes
+        #             angle_diversity_sample.append(np.expand_dims(np.argmax(diversity_angles.cpu().numpy(), 1), 1) / 24. * 360.)
 
-                if len(normalized_points) > 0:
-                    shapes_sample.append(torch.stack(normalized_points)) # keep has already been aplied for points
-                    if model.type_ == 'sln':
-                        diversity_retrieval_ids_sample.append(np.stack(filtered_diversity_retrieval_ids))
+        #         if len(normalized_points) > 0:
+        #             shapes_sample.append(torch.stack(normalized_points)) # keep has already been aplied for points
+        #             if model.type_ == 'sln':
+        #                 diversity_retrieval_ids_sample.append(np.stack(filtered_diversity_retrieval_ids))
 
 
-            # Compute standard deviation for box for this sample
-            if len(boxes_diversity_sample) > 0:
-                boxes_diversity_sample = torch.stack(boxes_diversity_sample, 1)
-                bs = boxes_diversity_sample.shape[0]
-                if model.type_ != 'sln':
-                    boxes_diversity_sample = batch_torch_denormalize_box_params(boxes_diversity_sample.reshape([-1, 6])).reshape([bs, -1, 6])
-                all_diversity_boxes += torch.std(boxes_diversity_sample, dim=1).cpu().numpy().tolist()
+        #     # Compute standard deviation for box for this sample
+        #     if len(boxes_diversity_sample) > 0:
+        #         boxes_diversity_sample = torch.stack(boxes_diversity_sample, 1)
+        #         bs = boxes_diversity_sample.shape[0]
+        #         if model.type_ != 'sln':
+        #             boxes_diversity_sample = batch_torch_denormalize_box_params(boxes_diversity_sample.reshape([-1, 6])).reshape([bs, -1, 6])
+        #         all_diversity_boxes += torch.std(boxes_diversity_sample, dim=1).cpu().numpy().tolist()
 
-                # Compute standard deviation for angle for this sample
-            if len(angle_diversity_sample) > 0:
-                angle_diversity_sample = np.stack(angle_diversity_sample, 1)
-                all_diversity_angles += [estimate_angular_std(d[:,0]) for d in angle_diversity_sample]
+        #         # Compute standard deviation for angle for this sample
+        #     if len(angle_diversity_sample) > 0:
+        #         angle_diversity_sample = np.stack(angle_diversity_sample, 1)
+        #         all_diversity_angles += [estimate_angular_std(d[:,0]) for d in angle_diversity_sample]
 
-                # Compute chamfer distances for shapes for this sample
-            if len(shapes_sample) > 0:
-                shapes_sample = torch.stack(shapes_sample, 1)
-                for shapes_id in range(len(shapes_sample)):
-                    # Taking a single predicted shape
-                    shapes = shapes_sample[shapes_id]
-                    if len(diversity_retrieval_ids_sample) > 0:
-                        # To avoid that retrieval the object ids like 0,1,0,1,0 gives high error
-                        # We sort them to measure how often different objects are retrieved 0,0,0,1,1
-                        diversity_retrieval_ids = diversity_retrieval_ids_sample[shapes_id]
-                        sorted_idx = diversity_retrieval_ids.argsort()
-                        shapes = shapes[sorted_idx]
-                    sequence_diversity = []
-                    # Iterating through its multiple runs
-                    for shape_sequence_id in range(len(shapes) - 1):
-                        # Compute chamfer with the next shape in its sequences
-                        dist1, dist2 = chamfer(shapes[shape_sequence_id:shape_sequence_id + 1].float(),
-                                               shapes[shape_sequence_id + 1:shape_sequence_id + 2].float())
-                        chamfer_dist = torch.mean(dist1) + torch.mean(dist2)
-                        # Save the distance
-                        sequence_diversity += [chamfer_dist.cpu().numpy().tolist()]
+        #         # Compute chamfer distances for shapes for this sample
+        #     if len(shapes_sample) > 0:
+        #         shapes_sample = torch.stack(shapes_sample, 1)
+        #         for shapes_id in range(len(shapes_sample)):
+        #             # Taking a single predicted shape
+        #             shapes = shapes_sample[shapes_id]
+        #             if len(diversity_retrieval_ids_sample) > 0:
+        #                 # To avoid that retrieval the object ids like 0,1,0,1,0 gives high error
+        #                 # We sort them to measure how often different objects are retrieved 0,0,0,1,1
+        #                 diversity_retrieval_ids = diversity_retrieval_ids_sample[shapes_id]
+        #                 sorted_idx = diversity_retrieval_ids.argsort()
+        #                 shapes = shapes[sorted_idx]
+        #             sequence_diversity = []
+        #             # Iterating through its multiple runs
+        #             for shape_sequence_id in range(len(shapes) - 1):
+        #                 # Compute chamfer with the next shape in its sequences
+        #                 dist1, dist2 = chamfer(shapes[shape_sequence_id:shape_sequence_id + 1].float(),
+        #                                        shapes[shape_sequence_id + 1:shape_sequence_id + 2].float())
+        #                 chamfer_dist = torch.mean(dist1) + torch.mean(dist2)
+        #                 # Save the distance
+        #                 sequence_diversity += [chamfer_dist.cpu().numpy().tolist()]
 
-                    if len(sequence_diversity) > 0:  # check if sequence has shapes
-                        all_diversity_chamfer.append(np.mean(sequence_diversity))
+        #             if len(sequence_diversity) > 0:  # check if sequence has shapes
+        #                 all_diversity_chamfer.append(np.mean(sequence_diversity))
 
         # compute constraints accuracy through simple geometric rules
         accuracy = validate_constrains(dec_triples, boxes_pred, None, None, model.vocab, accuracy, with_norm=model.type_ != 'sln')
@@ -652,13 +656,13 @@ def validate_constrains_loop(testdataloader, model, with_diversity=True, with_an
         json.dump(all_pred_boxes_exp, open(box_filename, 'w')) # 'dis_nomani_boxes_large.json'
         json.dump(all_pred_shapes_exp, open(shape_filename, 'w'))
 
-    if with_diversity:
-        print("DIVERSITY:")
-        print("\tShape (Avg. Chamfer Distance) = %f" % (np.mean(all_diversity_chamfer)))
-        print("\tBox (Std. metric size and location) = %f, %f" % (
-            np.mean(np.mean(all_diversity_boxes, axis=0)[:3]),
-            np.mean(np.mean(all_diversity_boxes, axis=0)[3:])))
-        print("\tAngle (Std.) %s = %f" % (k, np.mean(all_diversity_angles)))
+    # if with_diversity:
+    #     print("DIVERSITY:")
+    #     print("\tShape (Avg. Chamfer Distance) = %f" % (np.mean(all_diversity_chamfer)))
+    #     print("\tBox (Std. metric size and location) = %f, %f" % (
+    #         np.mean(np.mean(all_diversity_boxes, axis=0)[:3]),
+    #         np.mean(np.mean(all_diversity_boxes, axis=0)[3:])))
+    #     print("\tAngle (Std.) %s = %f" % (k, np.mean(all_diversity_angles)))
 
     keys = list(accuracy.keys())
     for dic, typ in [(accuracy, "acc")]:

@@ -1,69 +1,37 @@
 {
     "scans": [
         {
-            "scan": "random-name-test",
+            "scan": "gpt-inference",
             "objects": [
                 {
-                    "ply_color": "#567586",
-                    "label": "side table",
+                    "ply_color": "#d62728",
+                    "label": "chair",
                     "id": "0",
-                    "global_id": "11",
+                    "global_id": "111",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
-                    "ply_color": "#caf0fc",
-                    "label": "floor",
+                    "ply_color": "#c49c94",
+                    "label": "wall",
                     "id": "1",
-                    "global_id": "186",
+                    "global_id": "147",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
-                    "ply_color": "#8ee938",
-                    "label": "pillow",
+                    "ply_color": "#d62728",
+                    "label": "chair",
                     "id": "2",
-                    "global_id": "92",
+                    "global_id": "132",
                     "affordances": [],
                     "attributes": {}
                 },
                 {
-                    "ply_color": "#738b55",
-                    "label": "side table",
+                    "ply_color": "#c5b0d5",
+                    "label": "floor",
                     "id": "3",
-                    "global_id": "148",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#c3de05",
-                    "label": "pillow",
-                    "id": "4",
-                    "global_id": "93",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#98d1d3",
-                    "label": "pillow",
-                    "id": "5",
-                    "global_id": "179",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#d3bc9a",
-                    "label": "commode",
-                    "id": "6",
-                    "global_id": "74",
-                    "affordances": [],
-                    "attributes": {}
-                },
-                {
-                    "ply_color": "#ecce59",
-                    "label": "box",
-                    "id": "7",
-                    "global_id": "124",
+                    "global_id": "158",
                     "affordances": [],
                     "attributes": {}
                 }
