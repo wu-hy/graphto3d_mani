@@ -199,6 +199,7 @@ def render_off_screen(predBoxes, predAngles=None, scan_id=None, classes=None, cl
     fov = 45.0  # Field of view in degrees
     center = [0, 0, 0]   # Look-at center of the scene
     eye = [6, 6, 6]      # Camera position
+
     up = [0, 0, 1]       # Up vector
     renderer.setup_camera(fov, center, eye, up)
 

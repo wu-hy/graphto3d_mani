@@ -12,6 +12,7 @@
                     "attributes": {}
                 },
                 {
+
                     "ply_color": "#c49c94",
                     "label": "wall",
                     "id": "1",
@@ -20,6 +21,7 @@
                     "attributes": {}
                 },
                 {
+
                     "ply_color": "#d62728",
                     "label": "chair",
                     "id": "2",
