@@ -49,7 +49,7 @@ def draw_edges(g, graph_relationships, relationships, rel_filter_in, rel_filter_
 
 #4d3d82b6-8cf4-2e04-830a-4303fa0e79c7
 def run(use_sampled_graphs=True, scan_id="6e67e550-1209-2cd0-8294-7cc2564cf82c", split="1", with_manipulation=False,
-				data_path='./GT', outfolder="./vis_graphs/", graphfile='graphs_layout.yml', gen_custom_scene=True):
+				data_path='./GT', outfolder="./vis_graphs/", graphfile='graphs_layout.yml', gen_custom_scene=False):
 
 	if use_sampled_graphs:
 		# use this option to customize your own graphs in the yaml format
